@@ -117,6 +117,35 @@ app.get("/agents", async (req, res) => {
   }
 });
 
+async function deleteAgentById(agentId){
+  try{
+    const selectedAgent = await salesAgent.findByIdAndDelete(agentId)
+    return selectedAgent
+  }catch(error){
+    throw error
+  }
+}
+
+app.delete("/agents/:id", async(req, res) => {
+   try {
+    const existingAgent = await salesAgent.findById(req.params.id);
+    if (!existingAgent) {
+      return res.status(404).json({
+        error: `Agent with ID '${req.params.id}' not found.`,
+      });
+    }
+    const deletedAgent = await deleteAgentById(req.params.id);
+    if (deletedAgent) {
+      res.status(201).json({ message: "Agent deleted successfully." });
+    }
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to delete the Agent",
+      errorMessage: error.message,
+    });
+  }
+})
+
 async function createNewLeads(newLeadDetails) {
   try {
     const newLead = new lead(newLeadDetails);
