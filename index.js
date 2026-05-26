@@ -33,14 +33,34 @@ async function createNewSalesAgent(newSalesAgentDetails) {
   }
 }
 
-async function getSalesAgentByEmail(agentEmail) {
+app.post("/agents/:name", async (req, res) => {
   try {
-    const salesAgentByEmail = await salesAgent.find({ email: agentEmail });
-    return salesAgentByEmail;
+      const agentName = req.params.name; 
+      const {name, email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        error: "Invalid input: 'email' must be a valid email address.",
+      });
+    }
+
+    const existingAgent = await salesAgent.findOne({name: agentName });
+    if (!existingAgent) {
+      return res.status(409).json({
+        error: `Sales agent with name "${agentName}" does not exists.`,
+      });
+    }
+    const updateSalesAgent = await updateSalesAgentByName(agentName, req.body);
+    if (updateSalesAgent) {
+      return res.status(201).json(updateSalesAgent);
+    }
   } catch (error) {
-    throw error;
+    res.status(500).json({
+      error: "Failed to update email.",
+      errorMessage: error.message,
+    });
   }
-}
+})
 
 app.post("/agents", async (req, res) => {
   try {
@@ -69,6 +89,8 @@ app.post("/agents", async (req, res) => {
     });
   }
 });
+
+
 
 async function readAllSalesAgents() {
   try {
@@ -364,17 +386,22 @@ app.post("/leads/:id/comments", async (req, res) => {
         .json({ error: `Lead with ID '${leadId}' not found.` });
     }
 
-    const { commentText } = req.body;
+    const { commentText , author } = req.body;
     if (!commentText || typeof commentText !== "string") {
       return res
         .status(400)
         .json({ error: "commentText is required and must be a string." });
     }
-
+    const existingAgent = await salesAgent.findById(author)
+    if (!existingAgent) {
+      return res
+        .status(409)
+        .json({ error: `Sales Agent with ID '${author}' not found.` });
+    }
     const commentData = {
       lead: leadId,
       commentText: commentText,
-      author: existingLead.salesAgent,
+      author: author,
     };
 
     const newComment = await createNewComments(commentData);
